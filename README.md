@@ -1,50 +1,70 @@
-# Welcome to your Expo app 👋
+# FinUPI Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is the React Native Expo mobile version of the FinUPI application, which provides UPI transaction analytics and financial services.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Dashboard**: View transaction summaries, recent transactions, and quick access to all features
+- **Credit Score**: Check your credit score with detailed breakdown and improvement suggestions
+- **Apply Loan**: Apply for loans with customizable amount and terms
+- **Loan Offers**: Browse available loan offers based on your credit score
+- **Repayments**: Track and manage your loan repayments
+- **Profile**: View and edit your profile information
 
-   ```bash
+## Tech Stack
+
+- React Native
+- Expo
+- React Navigation
+- Redux Toolkit
+- Firebase Authentication & Firestore
+- Axios for API calls
+- React Native Chart Kit for visualizations
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Expo CLI
+- Android Studio / Xcode (for emulator) or Expo Go app on your physical device
+
+### Installation
+
+1. Clone the repository
+   ```
+   git clone https://github.com/your-username/FinUPI_spectrum.git
+   ```
+
+2. Install dependencies
+   ```
+   cd FinUPI-mobile
    npm install
    ```
 
-2. Start the app
-
-   ```bash
-    npx expo start
+3. Start the development server
+   ```
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+4. Run on your preferred platform
+   ```
+   npm run android    # For Android
+   npm run ios        # For iOS (requires macOS)
+   npm run web        # For web
+   ```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Backend Connection
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+The app connects to the FinServer backend for API services. Make sure the backend server is running for full functionality.
 
-## Get a fresh project
+## Demo Credentials
 
-When you're ready, run:
+For testing purposes, you can use:
+- Phone: 1234567890
+- OTP: 123456
 
-```bash
-npm run reset-project
-```
+## Notes
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+This mobile app maintains feature parity with the web version, but adapts the UI for mobile interaction patterns. The app uses a combination of real and mock data for demonstration purposes.

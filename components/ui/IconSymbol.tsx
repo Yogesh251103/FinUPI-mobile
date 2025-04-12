@@ -13,6 +13,26 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chart.bar.fill': 'bar-chart',
+  'dollarsign.circle.fill': 'attach-money',
+  'book.fill': 'menu-book',
+  'gift.fill': 'card-giftcard',
+  'arrow.clockwise': 'loop',
+  'person.fill': 'person',
+  'credit.card.fill': 'credit-card',
+  'banknote.fill': 'money',
+  'lock.fill': 'lock',
+  'bell.fill': 'notifications',
+  'gear.fill': 'settings',
+  'doc.text.fill': 'description',
+  'arrow.up': 'arrow-upward',
+  'arrow.down': 'arrow-downward',
+  'checkmark.circle.fill': 'check-circle',
+  'xmark.circle.fill': 'cancel',
+  'plus.circle.fill': 'add-circle',
+  'minus.circle.fill': 'remove-circle',
+  'info.circle.fill': 'info',
+  'questionmark.circle.fill': 'help',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
@@ -32,6 +52,7 @@ export function IconSymbol({
   size = 24,
   color,
   style,
+  weight,
 }: {
   name: IconSymbolName;
   size?: number;
@@ -39,5 +60,7 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  // Use a valid Material icon name from the mapping, or fallback to 'help'
+  const iconName = MAPPING[name] || 'help';
+  return <MaterialIcons color={color} size={size} name={iconName} style={style as any} />;
 }

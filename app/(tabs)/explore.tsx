@@ -1,109 +1,402 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  TouchableOpacity, 
+  ScrollView, 
+  ActivityIndicator,
+  SafeAreaView
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+// Updated interface to match the API response structure
+interface ContentData {
+  heading: string;
+  explanation: string;
+  quiz: {
+    question: string;
+    options: string[];
+    correct_index: number;
+    explanation: string;
+  };
+}
 
-export default function TabTwoScreen() {
+export default function DailyUpskilling() {
+  const [content, setContent] = useState<ContentData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    fetchFinancialContent();
+  }, []);
+
+  const fetchFinancialContent = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/financial_literacy_content');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch content');
+      }
+      
+      const data = await response.json();
+      console.log(data);
+      setContent(data);
+    } catch (err) {
+      console.error('Error fetching financial content:', err);
+      setError('Failed to load content. Please try again later.');
+      
+      // Use mock data as fallback with the correct structure
+      setContent({
+        heading: "The 4% Rule",
+        explanation: "The 4% rule suggests you can withdraw 4% of your retirement savings annually with minimal risk of running out of money during a 30-year retirement.",
+        quiz: {
+          question: "According to the 4% rule, how much would you need saved to withdraw ₹40,000 monthly in retirement?",
+          options: [
+            "₹1.2 crore",
+            "₹48 lakh",
+            "₹24 lakh",
+            "₹96 lakh"
+          ],
+          correct_index: 0,
+          explanation: "₹40,000 monthly = ₹4.8 lakh annually. Using the 4% rule, you would need 25 times this amount (₹1.2 crore)."
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOptionSelect = (index: number) => {
+    setSelectedOption(index);
+  };
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+  };
+
+  const handleReset = () => {
+    setShowQuiz(false);
+    setSelectedOption(null);
+    setSubmitted(false);
+  };
+
+  const renderContentPage = () => {
+    if (!content) return null;
+    
+    return (
+      <View style={styles.contentContainer}>
+        <Text style={styles.heading}>{content.heading}</Text>
+        <Text style={styles.explanation}>{content.explanation}</Text>
+        
+        <TouchableOpacity 
+          style={styles.nextButton}
+          onPress={() => setShowQuiz(true)}
+        >
+          <Text style={styles.nextButtonText}>Next - Take Quiz</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderQuizPage = () => {
+    if (!content) return null;
+    
+    const { quiz } = content;
+    const isCorrect = selectedOption === quiz.correct_index;
+    
+    return (
+      <View style={styles.quizContainer}>
+        <Text style={styles.quizQuestion}>{quiz.question}</Text>
+        
+        <View style={styles.optionsContainer}>
+          {quiz.options.map((option, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.optionButton,
+                selectedOption === index && styles.selectedOption,
+                submitted && index === quiz.correct_index && styles.correctOption,
+                submitted && selectedOption === index && selectedOption !== quiz.correct_index && styles.incorrectOption
+              ]}
+              onPress={() => !submitted && handleOptionSelect(index)}
+              disabled={submitted}
+            >
+              <Text 
+                style={[
+                  styles.optionText,
+                  submitted && index === quiz.correct_index && styles.correctOptionText,
+                  submitted && selectedOption === index && selectedOption !== quiz.correct_index && styles.incorrectOptionText
+                ]}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        {!submitted ? (
+          <TouchableOpacity 
+            style={[styles.submitButton, selectedOption === null && styles.disabledButton]}
+            onPress={handleSubmit}
+            disabled={selectedOption === null}
+          >
+            <Text style={styles.submitButtonText}>Submit Answer</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.resultContainer}>
+            <Text style={[styles.resultText, isCorrect ? styles.correctResultText : styles.incorrectResultText]}>
+              {isCorrect ? '🎉 Congratulations! That\'s correct!' : '😊 Not quite right, but keep learning!'}
+            </Text>
+            <Text style={styles.explanationText}>{quiz.explanation}</Text>
+            
+            <TouchableOpacity 
+              style={styles.resetButton}
+              onPress={handleReset}
+            >
+              <Text style={styles.resetButtonText}>Back to Content</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b5998" />
+        <Text style={styles.loadingText}>Loading today's financial lesson...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={fetchFinancialContent}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="auto" />
+      
+      <View style={styles.header}>
+        <Text style={styles.title}>Daily Upskilling</Text>
+      </View>
+      
+      <ScrollView style={styles.scrollView}>
+        {!showQuiz ? renderContentPage() : renderQuizPage()}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
   },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#e74c3c',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3b5998',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  header: {
+    padding: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+    backgroundColor: '#fff',
+    margin: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  explanation: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#444',
+    marginBottom: 30,
+  },
+  nextButton: {
+    backgroundColor: '#3b5998',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  nextButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  quizContainer: {
+    padding: 20,
+    backgroundColor: '#fff',
+    margin: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quizQuestion: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 20,
+    lineHeight: 26,
+  },
+  optionsContainer: {
+    marginBottom: 20,
+  },
+  optionButton: {
+    backgroundColor: '#f5f5f5',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectedOption: {
+    backgroundColor: '#e3e9f8',
+    borderColor: '#3b5998',
+  },
+  correctOption: {
+    backgroundColor: '#d4edda',
+    borderColor: '#28a745',
+  },
+  incorrectOption: {
+    backgroundColor: '#f8d7da',
+    borderColor: '#dc3545',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  correctOptionText: {
+    color: '#155724',
+    fontWeight: '600',
+  },
+  incorrectOptionText: {
+    color: '#721c24',
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: '#3b5998',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  disabledButton: {
+    backgroundColor: '#b3b7bf',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  resultContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  resultText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  correctResultText: {
+    color: '#155724',
+  },
+  incorrectResultText: {
+    color: '#721c24',
+  },
+  explanationText: {
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 22,
+    marginBottom: 15,
+  },
+  resetButton: {
+    backgroundColor: '#3b5998',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  }
 });
