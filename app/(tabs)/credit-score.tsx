@@ -15,10 +15,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import Spinner from '@/components/Spinner';
 import axios from 'axios';
-
-// Import Redux hooks
-import { useAppDispatch, useAppSelector } from '../redux/hooks';
-import { updateCreditInfo, setCreditScore, setMaxLoanAmount, setMaxLoanDuration, setScoreCategory } from '../redux/slices/creditSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // API endpoint base URL
 const API_BASE_URL = "http://localhost:5000";
@@ -48,6 +45,7 @@ interface CreditScoreData {
     suggested_term: number;
     interest_rate: number;
   };
+  improvement_recommendations: string[];
 }
 
 export default function CreditScoreScreen() {
@@ -55,10 +53,24 @@ export default function CreditScoreScreen() {
   const [creditScore, setCreditScoreLocal] = useState<CreditScoreData | null>(null);
   const [error, setError] = useState<string>('');
   
-  // Redux
-  const dispatch = useAppDispatch();
-  const reduxCreditScore = useAppSelector(state => state.credit.creditScore);
-  const reduxMaxLoan = useAppSelector(state => state.credit.maxLoanAmount);
+  // Function to store credit data in AsyncStorage
+  const storeCreditData = async (data: {
+    creditScore: number;
+    maxLoanAmount: number;
+    maxLoanDuration: number;
+    scoreCategory: string;
+  }) => {
+    try {
+      await AsyncStorage.setItem('creditScore', data.creditScore.toString());
+      await AsyncStorage.setItem('maxLoanAmount', data.maxLoanAmount.toString());
+      await AsyncStorage.setItem('maxLoanDuration', data.maxLoanDuration.toString());
+      await AsyncStorage.setItem('scoreCategory', data.scoreCategory);
+      await AsyncStorage.setItem('lastUpdated', new Date().toISOString());
+      console.log('Credit data stored in AsyncStorage from CreditScore screen:', data);
+    } catch (error) {
+      console.error('Error storing credit data in AsyncStorage:', error);
+    }
+  };
 
   useEffect(() => {
     fetchCreditScore();
@@ -116,18 +128,19 @@ export default function CreditScoreScreen() {
                 max_amount: apiData.loan_eligibility?.max_loan_amount || 5000,
                 suggested_term: apiData.loan_eligibility?.max_duration_months || 12,
                 interest_rate: apiData.loan_eligibility?.interest_rate || 14
-              }
+              },
+              improvement_recommendations: apiData.improvement_recommendations || []
             };
             
             setCreditScoreLocal(apiScoreData);
             
-            // Update Redux store with API data
-            dispatch(updateCreditInfo({
+            // Store data in AsyncStorage instead of Redux
+            await storeCreditData({
               creditScore: apiScoreData.score,
               maxLoanAmount: apiScoreData.loan_eligibility.max_amount, 
               maxLoanDuration: apiScoreData.loan_eligibility.suggested_term,
-              scoreCategory: getScoreLevel(apiScoreData.score)
-            }));
+              scoreCategory: apiData.score_category || getScoreLevel(apiScoreData.score)
+            });
             
             setLoading(false);
             return; // Exit early since we got API data
@@ -167,18 +180,23 @@ export default function CreditScoreScreen() {
             max_amount: 50000,
             suggested_term: 12,
             interest_rate: 14
-          }
+          },
+          improvement_recommendations: [
+            "Maintain your consistent payment history",
+            "Keep your trust utilization below 30%",
+            "Continue building your credit history"
+          ]
         };
         
         setCreditScoreLocal(scoreData);
         
-        // Update Redux store
-        dispatch(updateCreditInfo({
+        // Store data in AsyncStorage instead of Redux
+        storeCreditData({
           creditScore: scoreData.score,
           maxLoanAmount: scoreData.loan_eligibility.max_amount, 
           maxLoanDuration: scoreData.loan_eligibility.suggested_term,
           scoreCategory: getScoreLevel(scoreData.score)
-        }));
+        });
         
         setLoading(false);
       }, 1500);

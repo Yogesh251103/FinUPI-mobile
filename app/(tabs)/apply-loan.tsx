@@ -16,9 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import Spinner from '@/components/Spinner';
-
-// Import Redux hooks
-import { useAppDispatch, useAppSelector } from '../redux/hooks';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface LoanFormData {
   loanAmount: number;
@@ -87,25 +85,57 @@ const SimpleSlider: React.FC<{
 export default function ApplyLoanScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   
-  // Get data from Redux first so we can use it for initial state
-  const creditScore = useAppSelector(state => state.credit.creditScore);
-  const maxLoanAmount = useAppSelector(state => state.credit.maxLoanAmount) || 50000;
-  const maxLoanDuration = useAppSelector(state => state.credit.maxLoanDuration) || 36;
+  // State to hold credit data from AsyncStorage
+  const [creditScore, setCreditScore] = useState<number>(0);
+  const [maxLoanAmount, setMaxLoanAmount] = useState<number>(50000);
+  const [maxLoanDuration, setMaxLoanDuration] = useState<number>(36);
   
-  // Log the Redux state values
-  console.log('Redux max loan amount:', maxLoanAmount);
-  
-  // Set initial loan amount to 50% of max (or 25000 if that would be too small)
-  const initialLoanAmount = Math.min(
-    Math.max(25000, Math.floor((maxLoanAmount || 50000) * 0.5 / 1000) * 1000), 
-    maxLoanAmount || 50000
-  );
+  const initialLoanAmount = 25000;
   
   const [formData, setFormData] = useState<LoanFormData>({
     loanAmount: initialLoanAmount,
     loanTerm: 12,
     purpose: '',
   });
+  
+  // Load credit data from AsyncStorage
+  useEffect(() => {
+    const loadCreditData = async () => {
+      try {
+        const storedCreditScore = await AsyncStorage.getItem('creditScore');
+        const storedMaxLoanAmount = await AsyncStorage.getItem('maxLoanAmount');
+        const storedMaxLoanDuration = await AsyncStorage.getItem('maxLoanDuration');
+        
+        if (storedCreditScore) setCreditScore(parseInt(storedCreditScore));
+        if (storedMaxLoanAmount) setMaxLoanAmount(parseInt(storedMaxLoanAmount));
+        if (storedMaxLoanDuration) setMaxLoanDuration(parseInt(storedMaxLoanDuration));
+        
+        // Set initial loan amount to 50% of max (or 25000 if that would be too small)
+        if (storedMaxLoanAmount) {
+          const parsedMaxLoanAmount = parseInt(storedMaxLoanAmount);
+          const calculatedInitialAmount = Math.min(
+            Math.max(25000, Math.floor((parsedMaxLoanAmount) * 0.5 / 1000) * 1000), 
+            parsedMaxLoanAmount
+          );
+          
+          setFormData(prev => ({
+            ...prev,
+            loanAmount: calculatedInitialAmount
+          }));
+        }
+        
+        console.log('Loaded credit data from AsyncStorage:', {
+          creditScore: storedCreditScore,
+          maxLoanAmount: storedMaxLoanAmount,
+          maxLoanDuration: storedMaxLoanDuration
+        });
+      } catch (error) {
+        console.error('Error loading credit data from AsyncStorage:', error);
+      }
+    };
+    
+    loadCreditData();
+  }, []);
   
   // Adjust loan amount if it exceeds max loan amount
   useEffect(() => {
@@ -182,13 +212,16 @@ export default function ApplyLoanScreen() {
   };
 
   const handleSubmit = () => {
-    if (!validateForm()) return;
-    
+    if (!validateForm()) {
+      console.log('Form is invalid');
+      return;
+    }
     setLoading(true);
     
     // Simulate API call
     setTimeout(() => {
       setLoading(false);
+      alert('Your loan application has been submitted successfully. You will be redirected to loan offers.')
       Alert.alert(
         'Application Submitted', 
         'Your loan application has been submitted successfully. You will be redirected to loan offers.',
@@ -221,7 +254,7 @@ export default function ApplyLoanScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>Apply for Loan</Text>
             <View style={styles.creditScoreContainer}>
-              <Text style={styles.creditScoreLabel}>Your Credit Score:</Text>
+              <Text style={styles.creditScoreLabel}>Your Trust Score:</Text>
               <Text style={styles.creditScoreValue}>{creditScore}</Text>
             </View>
           </View>

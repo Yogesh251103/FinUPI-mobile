@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ScrollView, 
   StyleSheet, 
@@ -14,6 +14,7 @@ import { Link, router } from 'expo-router';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import Redux hooks
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
@@ -361,9 +362,14 @@ export default function Dashboard() {
       score: calculatedScore
     });
     
-    // Update Redux with calculated score
-    dispatch(setCreditScore(calculatedScore));
-  }, [transactions, dispatch]);
+    // Store calculated score in AsyncStorage
+    storeCreditData({
+      creditScore: calculatedScore,
+      maxLoanAmount: creditScore.loanLimit,
+      maxLoanDuration: 36,
+      scoreCategory: creditScore.level
+    });
+  }, [transactions]);
 
   useEffect(() => {
     processTransactionData();
@@ -376,6 +382,25 @@ export default function Dashboard() {
       processTransactionData();
     }
   }, [apiCreditScore]);
+
+  // Function to store credit data in AsyncStorage
+  const storeCreditData = async (data: {
+    creditScore: number;
+    maxLoanAmount: number;
+    maxLoanDuration: number;
+    scoreCategory: string;
+  }) => {
+    try {
+      await AsyncStorage.setItem('creditScore', data.creditScore.toString());
+      await AsyncStorage.setItem('maxLoanAmount', data.maxLoanAmount.toString());
+      await AsyncStorage.setItem('maxLoanDuration', data.maxLoanDuration.toString());
+      await AsyncStorage.setItem('scoreCategory', data.scoreCategory);
+      await AsyncStorage.setItem('lastUpdated', new Date().toISOString());
+      console.log('Credit data stored in AsyncStorage:', data);
+    } catch (error) {
+      console.error('Error storing credit data in AsyncStorage:', error);
+    }
+  };
 
   // Only fetch credit score if API is available
   const fetchCreditScore = async () => {
@@ -414,13 +439,13 @@ export default function Dashboard() {
           loanLimit: data.loan_eligibility?.max_loan_amount || mockCreditScore.loanLimit
         });
         
-        // Store credit score data in Redux
-        dispatch(updateCreditInfo({
+        // Store credit data in AsyncStorage instead of Redux
+        await storeCreditData({
           creditScore: data.credit_score,
           maxLoanAmount: data.loan_eligibility?.max_loan_amount || 0,
           maxLoanDuration: data.loan_eligibility?.max_duration_months || 36,
           scoreCategory: data.score_category || 'Unknown'
-        }));
+        });
         
         // If we receive loan eligibility data, update loan offers
         if (data.loan_eligibility && data.loan_eligibility.eligible) {
